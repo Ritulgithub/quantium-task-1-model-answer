@@ -1,49 +1,57 @@
-from dash import Dash, dcc, html, Input, Output, callback
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
 import plotly.express as px
-
 import pandas as pd
 
-app = Dash(__name__)
+# Load sales data from CSV
+sales_data = pd.read_csv('q.csv')
 
-df = pd.read_csv('q.csv')
+# Create a Dash app instance
+app = dash.Dash(__name__)
 
-fig = px.scatter(df, x="date", y="Sales", color="date")
-app.layout = html.Div([
-    html.Div(children=[
-        html.Label('Dropdown'),
-        dcc.Dropdown(['North', 'South', 'East', 'West', 'all']),
+# Define app layout with CSS styling
+app.layout = html.Div(style={'font-family': 'Arial, sans-serif', 'text-align': 'center', 'margin': '50px'},
+                      children=[
+                          html.H1("Pink Morsels Sales Data", style={'margin-bottom': '20px'}),
 
-        html.Br(),
-        html.Label('Multi-Select Dropdown'),
-        dcc.Dropdown(['North', 'South', 'East',
-                      'West', 'all'],
-                     multi=True),
+                          dcc.RadioItems(
+                              id='region-radio',
+                              options=[
+                                  {'label': 'North', 'value': 'north'},
+                                  {'label': 'East', 'value': 'east'},
+                                  {'label': 'South', 'value': 'south'},
+                                  {'label': 'West', 'value': 'west'},
+                                  {'label': 'All', 'value': 'all'}
+                              ],
+                              value='all',
+                              labelStyle={'display': 'block', 'margin': '10px auto'}
+                          ),
 
-        html.Br(),
-        html.Label('Radio Items'),
-        dcc.RadioItems(['North', 'South', 'East', 'West', 'all']),
-    ], style={'padding': 10, 'flex': 1}),
+                          dcc.Graph(id='sales-graph', style={'width': '80%', 'margin': '20px auto'})
+                      ]
+                      )
 
-    html.Div(children=[
-        html.Label('Checkboxes'),
-        dcc.Checklist(['North', 'South', 'East',
-                       'West', 'all']
-                      ),
 
-        html.Br(),
-        html.Label('Text Input'),
-        dcc.Input(value='MTL', type='text'),
+# Define callback to update the graph based on radio button selection
+@app.callback(
+    Output('sales-graph', 'figure'),
+    [Input('region-radio', 'value')]
+)
+def update_graph(selected_region):
+    if selected_region == 'all':
+        filtered_data = sales_data
+    else:
+        filtered_data = sales_data[sales_data['region'] == selected_region]
 
-        dcc.Slider(
-            df['region'],
-            df['region'],
-            step=None,
-            id='region--slider',
-            value=df['region'],
-            marks={str('region'): str('region') for region in df['region'].unique()},
-        ),
-    ], style={'padding': 10, 'flex': 1})
-], style={'display': 'flex', 'flex-direction': 'row'})
+    fig = px.line(filtered_data, x='date', y='Sales', title=f'Sales Data for {selected_region.capitalize()} region')
+    return fig
 
+
+# Run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(debug=True)
+
+
+
